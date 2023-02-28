@@ -9,7 +9,8 @@ from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import sys
-sys.path.append('/home/lsy/Fashion/')
+
+sys.path.append(r'/home/featurize/KPDA/')
 
 from src import pytorch_utils
 from src.kpda_parser import KPDA
@@ -41,6 +42,7 @@ def print_log(epoch, lr, train_metrics, train_time, val_metrics=None, val_time=N
         f.write(str2 + '\n\n')
     f.close()
 
+
 def train(data_loader, net, loss, optimizer, lr):
     start_time = time.time()
 
@@ -49,16 +51,25 @@ def train(data_loader, net, loss, optimizer, lr):
         param_group['lr'] = lr
 
     metrics = []
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     for i, (data, heatmaps, vismaps) in enumerate(data_loader):
-        data = data.cuda(async=True)
-        heatmaps = heatmaps.cuda(async=True)
-        vismaps = vismaps.cuda(async=True)
+        print("i:", i)
+        s = time.time()
+        # data = data.to(device)
+        # heatmaps = heatmaps.to(device)
+        # vismaps = vismaps.to(device)
+        data = data.cuda(non_blocking=True)
+        heatmaps = heatmaps.cuda(non_blocking=True)
+        vismaps = vismaps.cuda(non_blocking=True)
         heat_pred1, heat_pred2 = net(data)
+        print("heat_pred1:", len(heat_pred1))
         loss_output = loss(heatmaps, heat_pred1, heat_pred2, vismaps)
+        print('loss_output:', loss_output)
         optimizer.zero_grad()
         loss_output[0].backward()
         optimizer.step()
         metrics.append([loss_output[0].item(), loss_output[1].item(), loss_output[2].item()])
+        print('time using: %.6f' % (time.time()-s))
     end_time = time.time()
     metrics = np.asarray(metrics, np.float32)
     return metrics, end_time - start_time
@@ -69,9 +80,9 @@ def validate(data_loader, net, loss):
     net.eval()
     metrics = []
     for i, (data, heatmaps, vismaps) in enumerate(data_loader):
-        data = data.cuda(async=True)
-        heatmaps = heatmaps.cuda(async=True)
-        vismaps = vismaps.cuda(async=True)
+        data = data.cuda(non_blocking=True)
+        heatmaps = heatmaps.cuda(non_blocking=True)
+        vismaps = vismaps.cuda(non_blocking=True)
         heat_pred1, heat_pred2 = net(data)
         loss_output = loss(heatmaps, heat_pred1, heat_pred2, vismaps)
         metrics.append([loss_output[0].item(), loss_output[1].item(), loss_output[2].item()])
@@ -79,7 +90,10 @@ def validate(data_loader, net, loss):
     metrics = np.asarray(metrics, np.float32)
     return metrics, end_time - start_time
 
+
 if __name__ == '__main__':
+    # 创建一个 ArgumentParser 对象。
+    # ArgumentParser 对象包含将命令行解析成 Python 数据类型所需的全部信息
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-c', '--clothes', help='specify the clothing type', default='outwear')
     parser.add_argument('-r', '--resume', help='specify the checkpoint', default=None)
@@ -87,6 +101,7 @@ if __name__ == '__main__':
     print('Training ' + args.clothes)
 
     config = Config(args.clothes)
+    # config = Config("blouse")
     workers = config.workers
     n_gpu = pytorch_utils.setgpu(config.gpus)
     batch_size = config.batch_size_per_gpu * n_gpu
@@ -99,8 +114,11 @@ if __name__ == '__main__':
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
+    # 生成一个CPN网络实例，CPN（级联金字塔网络）=GlobalNet+RefineNet
     net = CascadePyramidNet(config)
+    # 生成一个损失函数实例
     loss = VisErrorLoss()
+    # 生成训练集和验证集的数据加载器
     train_data = KPDA(config, config.data_path, 'train')
     val_data = KPDA(config, config.data_path, 'val')
     print('Train sample number: %d' % train_data.size())
@@ -118,9 +136,17 @@ if __name__ == '__main__':
         net.load_state_dict(checkpoint['state_dict'])
         log_mode = 'a'
 
+    # 将模型加载到GPU上
+    ngpu = 2
+    # device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+    # print('Using device:', device)
+    # net = net.to(device)
+    # loss = loss.to(device)
     net = net.cuda()
     loss = loss.cuda()
+    # 大部分情况下，设置这个 flag 可以让内置的 cuDNN 的 auto-tuner 自动寻找最适合当前配置的高效算法，来达到优化运行效率的问题
     cudnn.benchmark = True
+    # 在多卡的GPU服务器，当我们在上面跑程序的时候，当迭代次数或者epoch足够大的时候，我们通常会使用nn.DataParallel函数来用多个GPU来加速训练
     net = DataParallel(net)
 
     train_dataset = DataGenerator(config, train_data, phase='train')
@@ -138,17 +164,21 @@ if __name__ == '__main__':
                             collate_fn=val_dataset.collate_fn,
                             pin_memory=True)
     optimizer = torch.optim.SGD(net.parameters(), lr, momentum=0.9, weight_decay=1e-4)
-    lrs = LRScheduler(lr, patience=3, factor=0.1, min_lr=0.01*lr, best_loss=best_val_loss)
+    lrs = LRScheduler(lr, patience=3, factor=0.1, min_lr=0.01 * lr, best_loss=best_val_loss)
+    print('Start training from epoch %d...' % start_epoch)
     for epoch in range(start_epoch, epochs + 1):
+        print('Epoch %d, lr = %.6f' % (epoch, lr))
         train_metrics, train_time = train(train_loader, net, loss, optimizer, lr)
+        print('train_time: %.2f' % train_time)
         with torch.no_grad():
             val_metrics, val_time = validate(val_loader, net, loss)
+        print('val_time: %.2f' % val_time)
 
         print_log(epoch, lr, train_metrics, train_time, val_metrics, val_time, save_dir=save_dir, log_mode=log_mode)
 
         val_loss = np.mean(val_metrics[:, 0])
         lr = lrs.update_by_rule(val_loss)
-        if val_loss < best_val_loss or epoch%10 == 0 or lr is None:
+        if val_loss < best_val_loss or epoch % 10 == 0 or lr is None:
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
             state_dict = net.module.state_dict()
@@ -160,10 +190,8 @@ if __name__ == '__main__':
                 'state_dict': state_dict,
                 'lr': lr,
                 'best_val_loss': best_val_loss},
-                os.path.join(save_dir, 'kpt_'+config.clothes+'_%03d.ckpt' % epoch))
+                os.path.join(save_dir, 'kpt_' + config.clothes + '_%03d.ckpt' % epoch))
 
         if lr is None:
             print('Training is early-stopped')
             break
-
-
