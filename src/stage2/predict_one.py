@@ -12,6 +12,9 @@ import os
 import argparse
 import sys
 
+# sys.path.append('/home/featurize/KPDA/')
+sys.path.append(r'D:\KPDA')
+
 from src import pytorch_utils
 from src.config import Config
 from src.kpda_parser import KPDA
@@ -36,7 +39,7 @@ def compute_keypoints(config, img0, net, encoder, doflip=False):
     pad_imgs = np.zeros([1, 3, config.img_max_size, config.img_max_size], dtype=np.float32)
     pad_imgs[0, :, :img_h2, :img_w2] = img
     data = torch.from_numpy(pad_imgs)
-    data = data.cuda(async=True)
+    data = data.cuda(non_blocking=True)
     _, hm_pred = net(data)
     hm_pred = F.relu(hm_pred, False)
     hm_pred = hm_pred[0].data.cpu().numpy()
@@ -113,7 +116,7 @@ if __name__ == '__main__':
         # keypoints2 = np.copy(keypoints)
         # keypoints2[:, :2] = (keypoints[:, :2] + keypoints_flip[:, :2]) // 2
 # ----------------------------------------------------------------------------------------------------------------------
-        if args.vis:
+        if args.visual:
             kp_img = draw_keypoints(img0, keypoints)
             cv2.imwrite(config.proj_path + '/tmp/{0}{1}.png'.format(config.clothes, idx), kp_img)
 

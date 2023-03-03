@@ -23,6 +23,7 @@ from src.lr_scheduler import LRScheduler
 
 
 def print_log(epoch, lr, train_metrics, train_time, val_metrics=None, val_time=None, save_dir=None, log_mode=None):
+    """输出每个epoch的训练和验证结果"""
     if epoch > 1:
         log_mode = 'a'
     train_metrics = np.mean(train_metrics, axis=0)
@@ -58,6 +59,8 @@ def train(data_loader, net, loss, optimizer, lr):
         # data = data.to(device)
         # heatmaps = heatmaps.to(device)
         # vismaps = vismaps.to(device)
+        # non_blocking是针对GPU上的内存（显存），表示把数据锁页在显存上，在后台进程过程中不释放。
+        # 一般地，如果pin_momery为True，把non_blocking也设为True，有助于加速数据传输，加快训练过程
         data = data.cuda(non_blocking=True)
         heatmaps = heatmaps.cuda(non_blocking=True)
         vismaps = vismaps.cuda(non_blocking=True)
@@ -65,8 +68,11 @@ def train(data_loader, net, loss, optimizer, lr):
         print("heat_pred1:", len(heat_pred1))
         loss_output = loss(heatmaps, heat_pred1, heat_pred2, vismaps)
         print('loss_output:', loss_output)
+        # 将模型的参数梯度初始化为0
         optimizer.zero_grad()
+        # 反向传播计算梯度
         loss_output[0].backward()
+        # 更新所有参数
         optimizer.step()
         metrics.append([loss_output[0].item(), loss_output[1].item(), loss_output[2].item()])
         print('time using: %.6f' % (time.time()-s))
@@ -104,6 +110,10 @@ if __name__ == '__main__':
     # config = Config("blouse")
     workers = config.workers
     n_gpu = pytorch_utils.setgpu(config.gpus)
+    # 大的batchsize减少训练时间，提高稳定性
+    # 也会导致模型泛化能力下降
+    # Hoffer[7]等人的研究表明，大的batchsize性能下降是因为训练时间不够长，本质上并不少batchsize的问题，
+    # 在同样的epochs下的参数更新变少了，因此需要更长的迭代次数。
     batch_size = config.batch_size_per_gpu * n_gpu
 
     epochs = config.epochs
@@ -137,7 +147,6 @@ if __name__ == '__main__':
         log_mode = 'a'
 
     # 将模型加载到GPU上
-    ngpu = 2
     # device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
     # print('Using device:', device)
     # net = net.to(device)
@@ -150,6 +159,7 @@ if __name__ == '__main__':
     net = DataParallel(net)
 
     train_dataset = DataGenerator(config, train_data, phase='train')
+    # print(len(train_dataset))
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
                               shuffle=True,
@@ -174,6 +184,7 @@ if __name__ == '__main__':
             val_metrics, val_time = validate(val_loader, net, loss)
         print('val_time: %.2f' % val_time)
 
+        # 记录训练日志
         print_log(epoch, lr, train_metrics, train_time, val_metrics, val_time, save_dir=save_dir, log_mode=log_mode)
 
         val_loss = np.mean(val_metrics[:, 0])
