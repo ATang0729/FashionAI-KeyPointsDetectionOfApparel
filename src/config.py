@@ -10,10 +10,10 @@ class Config:
         # self.proj_path = '/home/featurize/KPDA/fashion/'
         self.data_path = self.proj_path + 'KPDA/'
         self.batch_size_per_gpu = 6
-        self.workers = 0
-        self.gpus = '0'  # CUDA_DEVICES
-        self.base_lr = 1e-4  # learning rate
-        self.epochs = 10
+        self.workers = 6
+        self.gpus = '0，1'  # CUDA_DEVICES
+        self.base_lr = 1e-3  # learning rate
+        self.epochs = 100
 
         self.clothes = clothes
         self.keypoints = {

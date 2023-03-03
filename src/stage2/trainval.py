@@ -45,6 +45,13 @@ def print_log(epoch, lr, train_metrics, train_time, val_metrics=None, val_time=N
 
 
 def train(data_loader, net, loss, optimizer, lr):
+    """训练模型并返回训练结果和训练时间
+
+    :param data_loader: 数据加载器
+    :param net: 父类nn.Module 网络模型
+    :param loss: 父类nn.Module 损失函数
+    :param optimizer: 父类torch.optim.SGD 优化器
+    :param lr: 学习率"""
     start_time = time.time()
 
     net.train()
@@ -66,6 +73,7 @@ def train(data_loader, net, loss, optimizer, lr):
         vismaps = vismaps.cuda(non_blocking=True)
         heat_pred1, heat_pred2 = net(data)
         print("heat_pred1:", len(heat_pred1))
+        # 计算损失函数（总损失+L1+L2）
         loss_output = loss(heatmaps, heat_pred1, heat_pred2, vismaps)
         print('loss_output:', loss_output)
         # 将模型的参数梯度初始化为0
@@ -184,8 +192,9 @@ if __name__ == '__main__':
             val_metrics, val_time = validate(val_loader, net, loss)
         print('val_time: %.2f' % val_time)
 
-        # 记录训练日志
-        print_log(epoch, lr, train_metrics, train_time, val_metrics, val_time, save_dir=save_dir, log_mode=log_mode)
+        # 每十个epoch记录以此训练日志
+        if epoch % 10 == 0:
+            print_log(epoch, lr, train_metrics, train_time, val_metrics, val_time, save_dir=save_dir, log_mode=log_mode)
 
         val_loss = np.mean(val_metrics[:, 0])
         lr = lrs.update_by_rule(val_loss)
