@@ -192,9 +192,8 @@ if __name__ == '__main__':
             val_metrics, val_time = validate(val_loader, net, loss)
         print('val_time: %.2f' % val_time)
 
-        # 每十个epoch记录以此训练日志
-        if epoch % 10 == 0:
-            print_log(epoch, lr, train_metrics, train_time, val_metrics, val_time, save_dir=save_dir, log_mode=log_mode)
+        # 记录训练日志
+        print_log(epoch, lr, train_metrics, train_time, val_metrics, val_time, save_dir=save_dir, log_mode=log_mode)
 
         val_loss = np.mean(val_metrics[:, 0])
         lr = lrs.update_by_rule(val_loss)
@@ -204,13 +203,14 @@ if __name__ == '__main__':
             state_dict = net.module.state_dict()
             for key in state_dict.keys():
                 state_dict[key] = state_dict[key].cpu()
-            torch.save({
-                'epoch': epoch,
-                'save_dir': save_dir,
-                'state_dict': state_dict,
-                'lr': lr,
-                'best_val_loss': best_val_loss},
-                os.path.join(save_dir, 'kpt_' + config.clothes + '_%03d.ckpt' % epoch))
+            if epoch % 10 == 0:
+                torch.save({
+                    'epoch': epoch,
+                    'save_dir': save_dir,
+                    'state_dict': state_dict,
+                    'lr': lr,
+                    'best_val_loss': best_val_loss},
+                    os.path.join(save_dir, 'kpt_' + config.clothes + '_%03d.ckpt' % epoch))
 
         if lr is None:
             print('Training is early-stopped')

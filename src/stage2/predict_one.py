@@ -117,8 +117,9 @@ if __name__ == '__main__':
         # keypoints2[:, :2] = (keypoints[:, :2] + keypoints_flip[:, :2]) // 2
 # ----------------------------------------------------------------------------------------------------------------------
         if args.visual:
+            model = args.model.split('\\')[-1].split('.')[0]
             kp_img = draw_keypoints(img0, keypoints)
-            cv2.imwrite(config.proj_path + '/tmp/{0}{1}.png'.format(config.clothes, idx), kp_img)
+            cv2.imwrite(config.proj_path + '/tmp/{0}_{1}_{2}.png'.format(config.clothes, model, idx), kp_img)
 
         left, right = config.datum
         x1, y1, v1 = kpts[left]

@@ -21,12 +21,14 @@ from src.stage2.keypoint_encoder import KeypointEncoder
 
 
 def data_frame_template():
-    df = pd.DataFrame(columns=['image_id','image_category','neckline_left','neckline_right','center_front','shoulder_left',
-                               'shoulder_right','armpit_left','armpit_right','waistline_left','waistline_right',
-                               'cuff_left_in','cuff_left_out','cuff_right_in','cuff_right_out','top_hem_left',
-                               'top_hem_right','waistband_left','waistband_right','hemline_left','hemline_right',
-                               'crotch','bottom_left_in','bottom_left_out','bottom_right_in','bottom_right_out'])
+    df = pd.DataFrame(columns=['image_id', 'image_category', 'neckline_left', 'neckline_right', 'center_front',
+                               'shoulder_left', 'shoulder_right', 'armpit_left', 'armpit_right', 'waistline_left',
+                               'waistline_right', 'cuff_left_in', 'cuff_left_out', 'cuff_right_in', 'cuff_right_out',
+                               'top_hem_left', 'top_hem_right', 'waistband_left', 'waistband_right', 'hemline_left',
+                               'hemline_right', 'crotch', 'bottom_left_in', 'bottom_left_out', 'bottom_right_in',
+                               'bottom_right_out'])
     return df
+
 
 def compute_keypoints(config, img0, net, encoder, doflip=False):
     img_h, img_w, _ = img0.shape
@@ -42,7 +44,7 @@ def compute_keypoints(config, img0, net, encoder, doflip=False):
     pad_imgs = np.zeros([1, 3, config.img_max_size, config.img_max_size], dtype=np.float32)
     pad_imgs[0, :, :img_h2, :img_w2] = img
     data = torch.from_numpy(pad_imgs)
-    data = data.cuda(async=True)
+    data = data.cuda(non_blocking=True)
     _, hm_pred = net(data)
     hm_pred = F.relu(hm_pred, False)
     hm_pred = hm_pred[0].data.cpu().numpy()
@@ -58,11 +60,13 @@ def compute_keypoints(config, img0, net, encoder, doflip=False):
     # keypoints = np.stack([x, y, np.ones(x.shape)], axis=1).astype(np.int16)
     # return keypoints
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-c', '--clothes', help='specify the clothing type', default='outwear')
     parser.add_argument('-g', '--gpu', help='cuda device to use', default='0')
-    parser.add_argument('-m', '--model', help='specify the model', default=None)  # config.proj_path + 'checkpoints/outwear_036_lgtrain.ckpt'
+    parser.add_argument('-m', '--model', help='specify the model',
+                        default=None)
     parser.add_argument('-v', '--visual', help='whether visualize result', default=False)
     args = parser.parse_args(sys.argv[1:])
 
@@ -89,7 +93,8 @@ if __name__ == '__main__':
         with torch.no_grad():
             hm_pred = compute_keypoints(config, img0, net, encoder)
             hm_pred_flip = compute_keypoints(config, img0_flip, net, encoder, doflip=True)
-        x, y = encoder.decode_np(hm_pred+hm_pred_flip, scale, config.hm_stride, (img_w/2, img_h/2), method='maxoffset')
+        x, y = encoder.decode_np(hm_pred + hm_pred_flip, scale, config.hm_stride, (img_w / 2, img_h / 2),
+                                 method='maxoffset')
         keypoints = np.stack([x, y, np.ones(x.shape)], axis=1).astype(np.int16)
 
         # keypoints = compute_keypoints(config, img0, net, encoder)
@@ -103,12 +108,13 @@ if __name__ == '__main__':
         df.at[idx, 'image_id'] = row['image_id']
         df.at[idx, 'image_category'] = row['image_category']
         for k, kpt_name in enumerate(config.keypoints[config.clothes]):
-            df.at[idx, kpt_name] = str(keypoints[k,0])+'_'+str(keypoints[k,1])+'_1'
+            df.at[idx, kpt_name] = str(keypoints[k, 0]) + '_' + str(keypoints[k, 1]) + '_1'
 
         if args.visual:
+            model = args.model.split('\\')[-1].split('.')[0]
             kp_img = draw_keypoints(img0, keypoints)
-            cv2.imwrite(config.proj_path + '/tmp/{0}{1}.png'.format(config.clothes, idx), kp_img)
+            cv2.imwrite(config.proj_path + '/tmp/test/{0}_{1}_{2}.png'.format(config.clothes, model, idx), kp_img)
 
     df.fillna('-1_-1_-1', inplace=True)
     print(df.head(5))
-    df.to_csv(config.proj_path+'kp_predictions/'+config.clothes+'.csv', index=False)
+    df.to_csv(config.proj_path + 'kp_predictions/' + config.clothes + '.csv', index=False)

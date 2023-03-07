@@ -53,6 +53,7 @@ fashion/
   |-- checkpoints
   |-- tmp
   |-- KPDA/
+       |-- test_extracted.csv
        |-- train_extracted.csv
        |-- train1/
        |    |-- blouse/
@@ -62,6 +63,11 @@ fashion/
        |    |-- skirt/
        |    |-- trousers/
        |-- test/
+            |-- blouse/
+            |-- dress/
+            |-- outwear/
+            |-- skirt/
+            |-- trousers/
 ```
 
 `fasion/`是本版本用到的数据集的根目录
@@ -140,7 +146,7 @@ torch.save({
 
 测试单个模型，请运行：
 
-`python3 src/kpdetector/predict_one.py -c {clothing type} -g {gpu index} -m {path/to/the/model} -v {True/False}`
+`python3 src/kpdetector/predict.py -c {clothing type} -g {gpu index} -m {path/to/the/model} -v {True/False}`
 
 测试两个模型的综合性能：
 
