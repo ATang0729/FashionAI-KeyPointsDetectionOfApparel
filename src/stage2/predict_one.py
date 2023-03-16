@@ -55,17 +55,20 @@ def compute_keypoints(config, img0, net, encoder, doflip=False):
     # keypoints = np.stack([x, y, np.ones(x.shape)], axis=1).astype(np.int16)
     # return keypoints
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-c', '--clothes', help='specify the clothing type', default='outwear')
     parser.add_argument('-g', '--gpu', help='cuda device to use', default='0')
     parser.add_argument('-m', '--model', help='specify the model', default=None)
     parser.add_argument('-v', '--visual', help='whether visualize result', default=False)
+    parser.add_argument('-s', '--size', help='the size to predict, it can be \'full\' or a float or a int',
+                        default="full")
     args = parser.parse_args(sys.argv[1:])
 
     config = Config(args.clothes)
     n_gpu = pytorch_utils.setgpu(args.gpu)
-    val_kpda = KPDA(config, config.data_path, 'val')
+    val_kpda = KPDA(config, config.data_path, 'val', size=args.size)
     print('Testing: ' + config.clothes)
     print('Validation sample number: %d' % val_kpda.size())
     net = CascadePyramidNet(config)
@@ -80,9 +83,13 @@ if __name__ == '__main__':
     for idx in tqdm(range(val_kpda.size())):
         img_path = val_kpda.get_image_path(idx)
         kpts = val_kpda.get_keypoints(idx)
-        img0 = cv2.imread(img_path)  #X
+        img0 = cv2.imread(img_path)  # X
         img0_flip = cv2.flip(img0, 1)
-        img_h, img_w, _ = img0.shape
+        try:
+            img_h, img_w, _ = img0.shape
+        except Exception as e:
+            print(img_path)
+            continue
 
         # mask_path = img_path.replace('Images', 'Masks').replace('.jpg', '.npy')
         # if os.path.exists(mask_path):
@@ -99,15 +106,15 @@ if __name__ == '__main__':
         # else:
         #     pad_mask = np.ones([config.img_max_size//config.hm_stride, config.img_max_size//config.hm_stride], dtype=np.float32)
 
-
-# ----------------------------------------------------------------------------------------------------------------------
+        # ----------------------------------------------------------------------------------------------------------------------
         scale = config.img_max_size / max(img_w, img_h)
         with torch.no_grad():
-            hm_pred = compute_keypoints(config, img0, net, encoder) #* pad_mask
-            hm_pred2 = compute_keypoints(config, img0_flip, net, encoder, doflip=True) #* pad_mask
-        x, y = encoder.decode_np(hm_pred + hm_pred2, scale, config.hm_stride, (img_w/2, img_h/2), method='maxoffset')
+            hm_pred = compute_keypoints(config, img0, net, encoder)  # * pad_mask
+            hm_pred2 = compute_keypoints(config, img0_flip, net, encoder, doflip=True)  # * pad_mask
+        x, y = encoder.decode_np(hm_pred + hm_pred2, scale, config.hm_stride, (img_w / 2, img_h / 2),
+                                 method='maxoffset')
         keypoints = np.stack([x, y, np.ones(x.shape)], axis=1).astype(np.int16)
-# ----------------------------------------------------------------------------------------------------------------------
+        # ----------------------------------------------------------------------------------------------------------------------
         # keypoints = compute_keypoints(config, img0, net, encoder)
         # keypoints_flip = compute_keypoints(config, img0_flip, net, encoder)
         # keypoints_flip[:, 0] = img0.shape[1] - keypoints_flip[:, 0]
@@ -115,24 +122,23 @@ if __name__ == '__main__':
         #     keypoints_flip[conj] = keypoints_flip[conj[::-1]]
         # keypoints2 = np.copy(keypoints)
         # keypoints2[:, :2] = (keypoints[:, :2] + keypoints_flip[:, :2]) // 2
-# ----------------------------------------------------------------------------------------------------------------------
+        # ----------------------------------------------------------------------------------------------------------------------
         if args.visual:
-            model = args.model.split('\\')[-1].split('.')[0]
+            model = args.model.split('/')[-1].split('.')[0]
             kp_img = draw_keypoints(img0, keypoints)
-            cv2.imwrite(config.proj_path + '/tmp/{0}_{1}_{2}.png'.format(config.clothes, model, idx), kp_img)
+            tmp_path = config.proj_path + 'tmp/one/{0}'.format(model)
+            if not os.path.exists(tmp_path):
+                os.mkdir(tmp_path)
+            cv2.imwrite(tmp_path + '/{0}_{1}.png'.format(config.clothes, idx), kp_img)
 
         left, right = config.datum
         x1, y1, v1 = kpts[left]
         x2, y2, v2 = kpts[right]
         if v1 == -1 or v2 == -1:
             continue
-        width = math.sqrt((x2-x1)**2 + (y2-y1)**2)
+        width = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         ne = normalized_error(keypoints, kpts, width)
         nes.append([ne])
 
-
     nes = np.array(nes)
     print(np.mean(nes, axis=0))
-
-
-

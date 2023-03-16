@@ -37,14 +37,14 @@ The author of the Chinese version is not the original author. In the process of 
 
 本版本的数据集来源（应该是2018年参赛的人后来上传的，原始路径不存在了）：[FashionAI dataset](https://tianchi.aliyun.com/dataset/136923)。数据集描述如下：
 
-|数据名称|大小|描述|
-|--|--|--|
-|README.md|9.56KB|数据文档|
-|eval.zip|1.17KB||
-|fashionAI_keypoints_train2.tar|2.10GB|训练集2|
-|fashionAI_keypoints_train1.tar|3.00GB|训练集1|
-|fashionAI_keypoints_test.tar|3.00GB|测试集|
-|FashionAI_A_Hierarchical_Dataset_<br/>for_Fashion_Understanding|674.88KB|FashionAI数据集论文|
+|数据名称|大小| 描述  |
+|----|----|-----|
+|README.md|9.56KB| 数据文档 |
+|eval.zip|1.17KB|     |
+|fashionAI_keypoints_train2.tar|2.10GB| 训练集2 |
+|fashionAI_keypoints_train1.tar|3.00GB| 训练集1 |
+|fashionAI_keypoints_test.tar|3.00GB| 测试集 |
+|FashionAI_A_Hierarchical_Dataset_<br/>for_Fashion_Understanding|674.88KB| FashionAI数据集论文 |
 
 ⚠️在此版本中，数据集的路径与原始版本并不相同，且仅使用了原始数据集的5%。文件路径如下
 
@@ -52,6 +52,11 @@ The author of the Chinese version is not the original author. In the process of 
 fashion/
   |-- checkpoints
   |-- tmp
+  |    |-- one
+  |    |-- ensemble
+  |-- kp_predictions
+  |    |-- one
+  |    |-- ensemble
   |-- KPDA/
        |-- test_extracted.csv
        |-- train_extracted.csv
@@ -68,6 +73,7 @@ fashion/
             |-- outwear/
             |-- skirt/
             |-- trousers/
+            |-- test.csv
 ```
 
 `fasion/`是本版本用到的数据集的根目录

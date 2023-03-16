@@ -6,7 +6,8 @@ import cv2
 
 class KPDA():
     """数据加载器类"""
-    def __init__(self, config, data_dir, train_val):
+
+    def __init__(self, config, data_dir, train_val, size='full'):
         self.config = config
         if train_val == 'test':
             # assert False
@@ -22,6 +23,18 @@ class KPDA():
                 anno_df = anno_df3_val
 
         self.anno_df = anno_df[anno_df['image_category'] == self.config.clothes]
+        # print(self.anno_df.describe())
+        if size != 'full':
+            # 如果size介于0和1之间
+            assert eval(size) > 0
+            # print('size: ', size)
+            if eval(size) <= 1:
+                size = int(eval(size) * len(anno_df))
+                self.anno_df = self.anno_df[:size]
+            # 如果size大于1
+            else:
+                self.anno_df = self.anno_df[:int(size)]
+        # print(self.anno_df.describe())
 
     def size(self):
         return len(self.anno_df)

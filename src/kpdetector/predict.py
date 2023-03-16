@@ -9,7 +9,7 @@ import cv2
 import torch.nn.functional as F
 import pandas as pd
 import argparse
-import sys
+import sys, os
 
 from src import pytorch_utils
 from src.config import Config
@@ -113,7 +113,10 @@ if __name__ == '__main__':
         if args.visual:
             model = args.model.split('\\')[-1].split('.')[0]
             kp_img = draw_keypoints(img0, keypoints)
-            cv2.imwrite(config.proj_path + '/tmp/test/{0}_{1}_{2}.png'.format(config.clothes, model, idx), kp_img)
+            kp_path = config.proj_path + '/kp_predictions/one/{0}'.format(model)
+            if not os.path.exists(kp_path):
+                os.makedirs(kp_path)
+            cv2.imwrite(kp_path + '/{0}_{1}.png'.format(config.clothes, idx), kp_img)
 
     df.fillna('-1_-1_-1', inplace=True)
     print(df.head(5))

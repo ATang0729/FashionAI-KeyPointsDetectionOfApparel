@@ -7,6 +7,15 @@ import cv2
 class KeypointEncoder:
 
     def _gaussian_keypoint(self, input_size, mu_x, mu_y, alpha, sigma):
+        """
+        定义高斯分布核函数生成的单个关键点位置的热力图分布
+        :param input_size:
+        :param mu_x:
+        :param mu_y:
+        :param alpha:
+        :param sigma:
+        :return:
+        """
         h, w = input_size
         x = torch.linspace(0, w - 1, steps=w)
         y = torch.linspace(0, h - 1, steps=h)
@@ -16,6 +25,7 @@ class KeypointEncoder:
         return zz
 
     def _gaussian_keypoint_np(self, input_size, mu_x, mu_y, alpha, sigma):
+        """定义一个高斯分布核函数，但是是用numpy实现"""
         h, w = input_size
         x = np.linspace(0, w - 1, w)
         y = np.linspace(0, h - 1, h)
@@ -24,10 +34,11 @@ class KeypointEncoder:
         return zz
 
     def encode(self, keypoints, input_size, stride, hm_alpha, hm_sigma):
-        '''
+        """这里定义了encode函数，将关键点的坐标映射到对应的热力图上，返回该热力图和关键点的可见性
+
         :param keypoints: [pt num, 3] -> [[x, y, vis], ...]
         :return: [pt num, h, w] [h, w]
-        '''
+        """
         kpt_num = len(keypoints)
         vismap = torch.zeros([kpt_num, ])
         inps = [x // stride for x in input_size]
