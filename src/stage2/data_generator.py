@@ -20,12 +20,14 @@ class DataGenerator(Dataset):
         img_h, img_w, _ = img.shape
         # data augmentation
         if self.phase == 'train':
+            # 随机翻转
             random_flip = np.random.randint(0, 2)
             if random_flip == 1:
                 img = cv2.flip(img, 1)
                 kpts[:, 0] = img_w - kpts[:, 0]
                 for conj in self.config.conjug:
                     kpts[conj] = kpts[conj[::-1]]
+            # 随机旋转
             angle = random.uniform(-30, 30)
             M = cv2.getRotationMatrix2D((img_w / 2, img_h / 2), angle, 1)
             img = cv2.warpAffine(img, M, (img_w, img_h), flags=cv2.INTER_CUBIC)
@@ -36,22 +38,17 @@ class DataGenerator(Dataset):
         scale = self.config.img_max_size / max(img_w, img_h)
         img_h2 = int(img_h * scale)
         img_w2 = int(img_w * scale)
+        # 对缩放后的图像和关键点进行处理
         img = cv2.resize(img, (img_w2, img_h2), interpolation=cv2.INTER_CUBIC)
         kpts[:, :2] = kpts[:, :2] * scale
         kpts = kpts.astype(np.float32)
+        # 转换图像通道维度
         img = np.transpose(img, (2, 0, 1)).astype(np.float32)  # channel, height, width
         img[[0, 2]] = img[[2, 0]]
+        # 归一化图像
         img = img / 255.0
         img = (img - self.config.mu) / self.config.sigma
 
-        # transfer from collate_fn
-        # maxh = self.config.img_max_size  # max([img.size(1) for img in imgs])
-        # maxw = self.config.img_max_size  # max([img.size(2) for img in imgs])
-        # pad_img = np.zeros([3, maxh, maxw], dtype=np.float32)
-        # pad_img[:, :img.shape[1], :img.shape[2]] = img
-        # heatmap, vismap = self.encoder.encode_np(kpts, [maxh, maxw], self.config.hm_stride,
-        #                                          self.config.hm_alpha, self.config.hm_sigma)
-        # return torch.from_numpy(pad_img), torch.from_numpy(heatmap), torch.from_numpy(vismap)
         return torch.from_numpy(img), torch.from_numpy(kpts)
 
     def collate_fn(self, batch):
@@ -87,11 +84,13 @@ if __name__ == '__main__':
     from src.kpda_parser import KPDA
     from torch.utils.data import DataLoader
 
-
+    # 生成配置文件对象
     config = Config('dress')
+    # 生成数据集对象
     train_data = KPDA(config, config.data_path, 'train')
 
     data_dataset = DataGenerator(config, train_data, phase='train')
+
     data_loader = DataLoader(data_dataset,
                               batch_size=1,
                               shuffle=False,

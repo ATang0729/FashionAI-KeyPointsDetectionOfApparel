@@ -78,6 +78,14 @@ fashion/
 
 `fasion/`是本版本用到的数据集的根目录
 
+`checkpoints`是训练过程中保存的模型参数
+
+`tmp`是训练过程中保存的临时文件
+
+`kp_predictions`是训练过程中保存的预测结果
+
+`KPDA`是原始数据集的存放目录
+
 - train1->fashionAI_keypoints_train1.tar
 - train2->fashionAI_keypoints_train2.tar
 - test->fashionAI_keypoints_test.tar

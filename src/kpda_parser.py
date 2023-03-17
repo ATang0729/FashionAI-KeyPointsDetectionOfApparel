@@ -5,8 +5,14 @@ import cv2
 
 
 class KPDA():
-    """数据加载器类"""
-
+    """数据加载器类
+    读取对应的数据集csv索引文件，以DF形式保存标注数据至self.anno_df
+    Arguments:
+        config {Config} -- 配置类
+        data_dir {str} -- 数据集路径
+        train_val {str} -- train/val/test
+        size {str} -- 数据集大小，full/int/float(no more than 1)
+    """
     def __init__(self, config, data_dir, train_val, size='full'):
         self.config = config
         if train_val == 'test':
@@ -94,5 +100,5 @@ if __name__ == '__main__':
     from src.config import Config
 
     config = Config('dress')
-    kpda = KPDA(config, '/home/storage/lsy/fashion/FashionAI_Keypoint_Detection/', 'train')
+    kpda = KPDA(config, config.data_path, 'train')
     print(kpda.anno_df)

@@ -17,7 +17,6 @@ from src.kpda_parser import KPDA
 from src.config import Config
 from src.stage2.data_generator import DataGenerator
 from src.stage2.cascade_pyramid_network import CascadePyramidNet
-from src.stage2v9.cascade_pyramid_network_v9 import CascadePyramidNetV9
 from src.stage2.viserrloss import VisErrorLoss
 from src.lr_scheduler import LRScheduler
 
@@ -83,7 +82,7 @@ def train(data_loader, net, loss, optimizer, lr):
         # 更新所有参数
         optimizer.step()
         metrics.append([loss_output[0].item(), loss_output[1].item(), loss_output[2].item()])
-        print('time using: %.6f' % (time.time()-s))
+        print('time using: %.6f' % (time.time() - s))
     end_time = time.time()
     metrics = np.asarray(metrics, np.float32)
     return metrics, end_time - start_time

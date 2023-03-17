@@ -1,7 +1,3 @@
-import math
-import numpy as np
-
-
 class Config:
 
     def __init__(self, clothes='blouse'):
@@ -17,18 +13,20 @@ class Config:
 
         self.clothes = clothes
         self.keypoints = {
-            'blouse': ['neckline_left', 'neckline_right', 'center_front', 'shoulder_left', 'shoulder_right',
-                       'armpit_left', 'armpit_right', 'cuff_left_in', 'cuff_left_out', 'cuff_right_in',
-                       'cuff_right_out', 'top_hem_left', 'top_hem_right'],
-            'outwear': ['neckline_left', 'neckline_right', 'shoulder_left', 'shoulder_right', 'armpit_left',
-                        'armpit_right', 'waistline_left', 'waistline_right', 'cuff_left_in', 'cuff_left_out',
-                        'cuff_right_in', 'cuff_right_out', 'top_hem_left', 'top_hem_right'],
-            'trousers': ['waistband_left', 'waistband_right', 'crotch', 'bottom_left_in', 'bottom_left_out',
-                         'bottom_right_in', 'bottom_right_out'],
-            'skirt': ['waistband_left', 'waistband_right', 'hemline_left', 'hemline_right'],
-            'dress': ['neckline_left', 'neckline_right', 'center_front', 'shoulder_left', 'shoulder_right',
-                      'armpit_left', 'armpit_right', 'waistline_left', 'waistline_right', 'cuff_left_in',
-                      'cuff_left_out', 'cuff_right_in', 'cuff_right_out', 'hemline_left', 'hemline_right']}
+            'short_sleeved_shirt': ['key_point_'+str(i) for i in range(1, 26)],
+            'long_sleeved_shirt': ['key_point_'+str(i) for i in range(26, 59)],
+            'short_sleeved_outwear': ['key_point_'+str(i) for i in range(59, 90)],
+            'long_sleeved_outwear': ['key_point_'+str(i) for i in range(90, 129)],
+            'vest': ['key_point_'+str(i) for i in range(129, 144)],
+            'sling': ['key_point_'+str(i) for i in range(144, 159)],
+            'shorts': ['key_point_'+str(i) for i in range(159, 169)],
+            'trousers': ['key_point_'+str(i) for i in range(169, 183)],
+            'skirt': ['key_point_'+str(i) for i in range(183, 191)],
+            'short_sleeved_dress': ['key_point_'+str(i) for i in range(191, 220)],
+            'long_sleeved_dress': ['key_point_'+str(i) for i in range(220, 257)],
+            'vest_dress': ['key_point_'+str(i) for i in range(257, 276)],
+            'sling_dress': ['key_point_'+str(i) for i in range(276, 295)]
+        }
         keypoint = self.keypoints[self.clothes]
         self.num_keypoints = len(keypoint)
         self.conjug = []
@@ -45,10 +43,10 @@ class Config:
         self.mu = 0.65
         self.sigma = 0.25
         # RPN
-        self.anchor_areas = [32 * 32., 64 * 64., 128 * 128., 256 * 256., 512 * 512.]  # p3 -> p7
-        self.aspect_ratios = [1 / 5., 1 / 2., 1 / 1., 2 / 1., 5 / 1.]  # w/h
-        self.scale_ratios = [1., pow(2, 1 / 3.), pow(2, 2 / 3.)]
-        self.anchor_num = len(self.aspect_ratios) * len(self.scale_ratios)
+        # self.anchor_areas = [32 * 32., 64 * 64., 128 * 128., 256 * 256., 512 * 512.]  # p3 -> p7
+        # self.aspect_ratios = [1 / 5., 1 / 2., 1 / 1., 2 / 1., 5 / 1.]  # w/h
+        # self.scale_ratios = [1., pow(2, 1 / 3.), pow(2, 2 / 3.)]
+        # self.anchor_num = len(self.aspect_ratios) * len(self.scale_ratios)
         self.max_iou = 0.7
         self.min_iou = 0.4
         self.cls_thresh = 0.5
@@ -57,20 +55,16 @@ class Config:
 
         # STAGE 2
         self.hm_stride = 4
-        # Heatmap
-        # if self.clothes in ['outwear', 'trousers']:
-        #     self.hm_sigma = self.img_max_size / self.hm_stride / 8.
-        # else:
         self.hm_sigma = self.img_max_size / self.hm_stride / 16.  # 4 #16 for 256 size
         self.hm_alpha = 100.
 
-        lrschedule = {'blouse': [16, 26, 42],
-                      'outwear': [15, 20, 26],
-                      'trousers': [18, 25, 36],
-                      'skirt': [26, 32, 39],
-                      'dress': [30, 34, 31]
-                      }
-        self.lrschedule = lrschedule[clothes]
+        # lrschedule = {'blouse': [16, 26, 42],
+        #               'outwear': [15, 20, 26],
+        #               'trousers': [18, 25, 36],
+        #               'skirt': [26, 32, 39],
+        #               'dress': [30, 34, 31]
+        #               }
+        # self.lrschedule = lrschedule[clothes]
 
 
 if __name__ == '__main__':
